@@ -24,10 +24,6 @@ public class ReservationController {
     Map<String, Object> ajouterReservation(@RequestBody Reservation reservation) {
         return reservationService.ajouterReservation(reservation);
     }
-    @PostMapping("/ajouterReservationV2")
-    Map<String, Object> ajouterReservationV2(@RequestBody Reservation reservation) {
-        return reservationService.ajouterReservationV2(reservation);
-    }
     @PutMapping("/updateReservation")
     Reservation updateReservation(@RequestBody Reservation reservation) {
         return reservationService.updateReservation(reservation);
@@ -48,12 +44,6 @@ public class ReservationController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
-    }
-    /**************************************************************/
-
-    @PutMapping("/ouiValide/{id}")
-    void ouiValide(@PathVariable Integer id) {
-        reservationService.ouiValide(id);
     }
 
     @PutMapping("/nonValide/{id}")
