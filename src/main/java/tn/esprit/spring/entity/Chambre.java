@@ -20,10 +20,12 @@ public class Chambre implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="idChambre")
     private Long idChambre;
+    @Column(name="numeroChambre")
     private Long numeroChambre;
     @Enumerated(EnumType.STRING)
     private TypeC TypeChambre ;
-
+    @Column(name="capaciteChambre")
+    private Integer capaciteChambre;
     @JsonBackReference
     @ManyToOne
     Bloc bloc;

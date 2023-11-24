@@ -8,6 +8,7 @@ import java.util.Map;
 public interface ReservationServiceImpl {
     Reservation addReservation(Reservation reservation);
     Map<String, Object> ajouterReservation(Reservation reservation);
+    Map<String, Object> ajouterReservationV2(Reservation reservation);
     List<Reservation> getAllReservations();
     Reservation updateReservation(Reservation reservation);
     void deleteReservation(Integer id);

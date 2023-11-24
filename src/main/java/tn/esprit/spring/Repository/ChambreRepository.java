@@ -6,8 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
-
 public interface ChambreRepository extends JpaRepository<Chambre, Long> {
 
     //Get chambre qui a un etudiantId en parametre
@@ -18,6 +16,8 @@ public interface ChambreRepository extends JpaRepository<Chambre, Long> {
             "WHERE c.TypeChambre = :typeChambre " +
             "AND (r IS NULL OR r.estValide = false)"
           )
-    Optional<Chambre> findAvailableChambreByType(@Param("typeChambre") TypeC typeChambre);
-
+    Chambre findAvailableChambreByType(@Param("typeChambre") TypeC typeChambre);
+/***************/
+@Query("SELECT c FROM Chambre c WHERE c.TypeChambre = :type AND c.capaciteChambre > 0 ORDER BY c.idChambre ASC LIMIT 1")
+Chambre findChambreDisponible(@Param("type") TypeC type);
 }

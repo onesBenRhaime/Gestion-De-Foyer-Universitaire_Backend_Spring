@@ -10,6 +10,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -20,10 +21,12 @@ public class ReservationService implements ReservationServiceImpl {
     ChambreRepository chambreRepository;
     @Autowired
     EtudiantRepository etudiantRepository;
+    /***************Add Simple ************************/
     @Override
     public Reservation addReservation(Reservation reservation) {
         return reservationRepository.save(reservation);
     }
+    /***************ajouterReservation : ete existe  , type existe ==> Ajouter   ************************/
     @Override
      public  Map<String, Object> ajouterReservation(Reservation reservation){
       Map<String, Object> result = new HashMap<>();
@@ -40,9 +43,8 @@ public class ReservationService implements ReservationServiceImpl {
       // L'étudiant existe, continuez avec la réservation
       Etudiant etudiantConnecte = etudiantOpt.get();
 
-      // Valider ou ajuster d'autres champs de la réservation si nécessaire
-      reservation.setEstValide(false); // Par exemple, initialement non validée
 
+      reservation.setEstValide(false);
 
       // Associer la réservation à l'étudiant connecté
       reservation.setEtudiants(Set.of(etudiantConnecte));
@@ -66,6 +68,82 @@ public class ReservationService implements ReservationServiceImpl {
       return result;
 
   }
+
+
+    /***************Add V 3 Advances  ************************/
+    @Override
+    public Map<String, Object> ajouterReservationV2(Reservation reservation) {
+        System.out.println("*****************ajouterReservationV2**************");
+        Map<String, Object> response = new HashMap<>();
+        // Vérifier si l'étudiant avec le CIN existe
+        Optional<Etudiant> etudiantOpt = etudiantRepository.findByCin(reservation.getCinEtudiant());
+        if (etudiantOpt.isEmpty()) {
+            // L'étudiant n'existe pas, renvoyer un message d'erreur
+            response.put("message", "Étudiant non trouvé avec le CIN : " + reservation.getCinEtudiant());
+            return response;
+        }
+
+        // Récupérer une chambre disponible en fonction de certains critères
+        Chambre chambreDisponible = chambreRepository.findChambreDisponible(reservation.getTypeChambre());
+
+        if (chambreDisponible != null) {
+            // Générer le numéro de réservation
+            String numReservation = genererNumeroReservation(reservation);
+            System.out.println("numReservation    : " + numReservation);
+            reservation.setNumReservation(numReservation);
+
+            // Mise à jour de la capacité de la chambre
+            chambreDisponible.setCapaciteChambre(chambreDisponible.getCapaciteChambre() - 1);
+            chambreRepository.save(chambreDisponible);
+
+
+
+            /* Mettre à jour l'état de l'étudiant s'il y en a
+            Set<Etudiant> etudiants = reservation.getEtudiants();
+            if (etudiants != null && !etudiants.isEmpty()) {
+                Etudiant etudiant = etudiants.iterator().next();
+                etudiant.getReservations().add(nouvelleReservation);
+                etudiantRepository.save(etudiant);
+            }*/
+            // L'étudiant existe, continuez avec la réservation
+            Etudiant etudiantConnecte = etudiantOpt.get();
+
+            reservation.setEstValide(false);
+
+            // Associer la réservation à l'étudiant connecté
+            reservation.setEtudiants(Set.of(etudiantConnecte));
+
+            // Associer l'étudiant connecté à la réservation
+            Set<Reservation> reservationsEtudiant = etudiantConnecte.getReservations();
+            if (reservationsEtudiant == null) {
+                reservationsEtudiant = new HashSet<>();
+            }
+            reservationsEtudiant.add(reservation);
+            etudiantConnecte.setReservations(reservationsEtudiant);
+
+            // Ajouter la réservation
+            Reservation nouvelleReservation = reservationRepository.save(reservation);
+
+            response.put("message", "Réservation ajoutée avec succès");
+            response.put("reservation", nouvelleReservation);
+        } else {
+            response.put("message", "La réservation ne peut pas être ajoutée. Aucune chambre disponible.");
+        }
+
+        return response;
+    }
+    private String genererNumeroReservation(Reservation reservation) {
+        Chambre chambre =  chambreRepository.findChambreDisponible(reservation.getTypeChambre());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
+        String anneeUniversitaire = sdf.format(new Date());
+
+        return chambre.getNumeroChambre() + "-" + chambre.getBloc().getNomBloc() + "-" + anneeUniversitaire;
+    }
+
+
+
+/***************************************************************************************************************/
+
     @Override
     public List<Reservation> getAllReservations() {
         return reservationRepository.findAll();
@@ -100,11 +178,11 @@ public class ReservationService implements ReservationServiceImpl {
                     .orElseThrow(() -> new EntityNotFoundException("Réservation non trouvée avec l'ID : " + idReservation));
               System.out.println("reservation : **********"+reservation);
             // Vérifier si une chambre du type demandé existe
-            Optional<Chambre> chambreOpt = chambreRepository.findAvailableChambreByType(reservation.getTypeChambre());
-              System.out.println("chambreOpt  **********"+chambreOpt);
-            if (chambreOpt.isPresent()) {
+          Chambre chambre = chambreRepository.findAvailableChambreByType(reservation.getTypeChambre());
+              System.out.println("chambreOpt  **********"+chambre);
+
                 // Si une chambre du type demandé existe, valider la réservation
-                Chambre chambre = chambreOpt.get();
+
                 reservation.setEstValide(true);
 
                 // Ajouter la relation entre la chambre et la réservation
@@ -112,10 +190,7 @@ public class ReservationService implements ReservationServiceImpl {
 
                 // Enregistrer les modifications
                 reservationRepository.save(reservation);
-            } else {
-                // Si aucune chambre du type demandé n'est disponible, vous pouvez gérer cela en conséquence (par exemple, lancer une exception ou traiter différemment).
-                throw new EntityNotFoundException("Aucune chambre disponible du type demandé pour la réservation avec l'ID : " + idReservation);
-            }
+
         }
 
 @Override
@@ -135,11 +210,11 @@ public Map<String, Object> estValide(Integer idReservation){
     Reservation reservation = reservationOpt.get();
 
     // Vérifier si une chambre du type demandé existe
-    Optional<Chambre> chambreOpt = chambreRepository.findAvailableChambreByType(reservation.getTypeChambre());
+    Chambre chambre = chambreRepository.findAvailableChambreByType(reservation.getTypeChambre());
 
-    if (chambreOpt.isPresent()) {
+
         // Si une chambre du type demandé existe, valider la réservation
-        Chambre chambre = chambreOpt.get();
+
         reservation.setEstValide(true);
 
         // Ajouter la relation entre la chambre et la réservation
@@ -152,11 +227,6 @@ public Map<String, Object> estValide(Integer idReservation){
 
         response.put("status", "Succès");
         response.put("message", "Réservation validée avec succès.");
-    } else {
-        // Si aucune chambre du type demandé n'est disponible
-        response.put("status", "Échec");
-        response.put("message", "Aucune chambre disponible du type demandé pour la réservation.");
-    }
 
     return response;
 }
