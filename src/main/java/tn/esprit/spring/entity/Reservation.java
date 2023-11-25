@@ -27,7 +27,7 @@ public class Reservation  implements Serializable {
     @Column(name="cinEtudiant")
     private Long cinEtudiant;
      @Temporal (TemporalType.DATE)
-    private Date anneeUniversitaire;
+    private Integer anneeUniversitaire;
     @Column(name = "estValide")
     private boolean estValide;
     @Enumerated(EnumType.STRING)

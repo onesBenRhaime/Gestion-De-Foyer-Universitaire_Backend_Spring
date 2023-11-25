@@ -61,9 +61,14 @@ public class ReservationService implements ReservationServiceImpl {
 
             // L'étudiant existe, continuez avec la réservation
             Etudiant etudiantConnecte = etudiantOpt.get();
-
+/***ATTRIBUT**/
             reservation.setEstValide(false);
-
+            reservation.setNumReservation("Pas Encore");
+            // Obtenez l'année actuelle
+            int anneeActuelle = Calendar.getInstance().get(Calendar.YEAR);
+            // Définissez l'attribut
+            reservation.setAnneeUniversitaire(anneeActuelle);
+/***ATTRIBUT**/
             // Associer la réservation à l'étudiant connecté
             reservation.setEtudiants(Set.of(etudiantConnecte));
 
