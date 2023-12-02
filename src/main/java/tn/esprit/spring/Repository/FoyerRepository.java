@@ -17,5 +17,5 @@ public interface FoyerRepository extends JpaRepository<Foyer, Long> {
     //Get CapaciteFoyer  qui a un blocId en parametre
     @Query("SELECT f.capaciteFoyer FROM Foyer f JOIN f.blocs b WHERE b.idBloc = :Idbloc")
     long findCapaciteFoyerByIdBloc(@Param("Idbloc") Long Idbloc);
-
+ 
 }

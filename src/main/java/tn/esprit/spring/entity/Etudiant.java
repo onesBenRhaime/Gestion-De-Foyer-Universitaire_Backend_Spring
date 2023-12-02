@@ -1,5 +1,6 @@
 package tn.esprit.spring.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,4 +29,8 @@ public class Etudiant implements Serializable {
     private Date dateNaissance;
     @ManyToMany
     private Set<Reservation> reservations;
+
+    @ManyToOne
+    @JsonIgnore
+    private Universite universite;
 }

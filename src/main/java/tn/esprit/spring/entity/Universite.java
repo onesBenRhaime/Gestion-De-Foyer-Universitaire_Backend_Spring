@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
+import java.util.Set;
 
 @Entity
 @Table(name="universite")
@@ -24,4 +25,8 @@ public class Universite implements Serializable {
     @OneToOne(mappedBy="universite")
     @JsonIgnore
     private Foyer foyer;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy="universite")
+    private Set<Etudiant> etudiants ;
+
 }

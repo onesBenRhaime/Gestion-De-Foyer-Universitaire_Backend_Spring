@@ -26,6 +26,8 @@ public class Reservation  implements Serializable {
     private String numReservation;
     @Column(name="cinEtudiant")
     private Long cinEtudiant;
+    @Column(name="numEtudiant")
+    private Long numEtudiant;
      @Temporal (TemporalType.DATE)
     private Integer anneeUniversitaire;
     @Column(name = "estValide")
@@ -34,4 +36,8 @@ public class Reservation  implements Serializable {
     private TypeC TypeChambre ;
     @ManyToMany(mappedBy = "reservations")
     private Set<Etudiant> etudiants;
+
+    public boolean getEstValide() {
+        return estValide;
+    }
 }

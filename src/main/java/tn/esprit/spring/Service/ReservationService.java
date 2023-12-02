@@ -1,12 +1,7 @@
 package tn.esprit.spring.Service;
 
-import tn.esprit.spring.Repository.ChambreRepository;
-import tn.esprit.spring.Repository.EtudiantRepository;
-import tn.esprit.spring.Repository.ReservationRepository;
-import tn.esprit.spring.entity.Chambre;
-import tn.esprit.spring.entity.Etudiant;
-import tn.esprit.spring.entity.Reservation;
-import jakarta.persistence.EntityNotFoundException;
+import tn.esprit.spring.Repository.*;
+import tn.esprit.spring.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +16,12 @@ public class ReservationService implements ReservationServiceImpl {
     ChambreRepository chambreRepository;
     @Autowired
     EtudiantRepository etudiantRepository;
+    @Autowired
+    FoyerRepository foyerRepository;
+    @Autowired
+    BlocRepository blocRepository;
+    public static final String ACCOUNT_SID = "AC2eb2c8a866ca28cc41a4c86e365022d4";
+    public static final String AUTH_TOKEN = "7e4d1f853a4e48a36a67a2bb4963948a";
     /*************** Add Reservation ************************/
     @Override
     public Reservation addReservation(Reservation reservation) {
@@ -32,6 +33,18 @@ public class ReservationService implements ReservationServiceImpl {
     @Override
     public List<Reservation> getAllReservations() {
         return reservationRepository.findAll();
+    }
+    @Override
+    public Map<String, Object> getMesReservations(Long cinUser) {
+        Map<String, Object> response = new HashMap<>();
+           List<Reservation> reservations = reservationRepository.findAllByCinEtudiant(cinUser);
+           if (reservations.isEmpty()){
+               response.put("message", "Vous avez aucune reservation ");
+               return response;
+           }
+        response.put("message", "Voici toutes vos réservations.");
+        response.put("reservations", reservations);
+        return response;
     }
     /****************************Update Reservation*******************/
     @Override
@@ -61,14 +74,30 @@ public class ReservationService implements ReservationServiceImpl {
 
             // L'étudiant existe, continuez avec la réservation
             Etudiant etudiantConnecte = etudiantOpt.get();
-/***ATTRIBUT**/
-            reservation.setEstValide(false);
-            reservation.setNumReservation("Pas Encore");
+
             // Obtenez l'année actuelle
             int anneeActuelle = Calendar.getInstance().get(Calendar.YEAR);
+
+            // Vérifier s'il y a déjà une réservation pour l'étudiant cette année
+            Optional<Reservation> reservationExistante = reservationRepository.findByCinEtudiantAndAnneeUniversitaire(
+                    etudiantConnecte.getCin(), anneeActuelle);
+
+            if (reservationExistante.isPresent()) {
+                // Une réservation existe déjà pour cet étudiant cette année, renvoyer un message d'erreur
+                 response.put("message", "Une réservation existe déjà pour l'étudiant avec le CIN : " +
+                        etudiantConnecte.getCin() + " pour l'année universitaire : " + anneeActuelle);
+                return response;
+            }
+
+            // L'étudiant n'a pas encore réservé cette année, continuez avec la réservation
+
+            /***ATTRIBUT**/
+            reservation.setEstValide(false);
+            reservation.setNumReservation("Pas Encore");
+
             // Définissez l'attribut
             reservation.setAnneeUniversitaire(anneeActuelle);
-/***ATTRIBUT**/
+            /***ATTRIBUT**/
             // Associer la réservation à l'étudiant connecté
             reservation.setEtudiants(Set.of(etudiantConnecte));
 
@@ -98,6 +127,7 @@ public class ReservationService implements ReservationServiceImpl {
 
    @Override
    public Map<String, Object> estValide(Integer idReservation){
+       System.out.println("*****************************EstValide******************************");
      Map<String, Object> response = new HashMap<>();
 
     // Vérifier si la réservation avec l'ID spécifié existe
@@ -108,20 +138,27 @@ public class ReservationService implements ReservationServiceImpl {
     }
     // La réservation existe, continuer le processus de validation
     Reservation reservation = reservationOpt.get();
-
-    // Récupérer une chambre disponible en fonction de certains critères
-    Chambre chambreDisponible = chambreRepository.findChambreDisponible(reservation.getTypeChambre());
+   //Vérifier si la réservation a déjà une chambre attribuée
+        if (reservation.getEstValide()) {
+            response.put("message", "La réservation a déjà une chambre attribuée.");
+            response.put("admin", "yes");
+            return response;
+        }
+       Optional<Etudiant> etudiantOpt = etudiantRepository.findByCin(reservation.getCinEtudiant());
+       Etudiant etudiantConnecte = etudiantOpt.get();
+    // Récupérer une chambre disponible en fonction de capacite
+    Chambre chambreDisponible = chambreRepository.findChambreDisponible(reservation.getTypeChambre(),etudiantConnecte.getUniversite().getIdUniversite());
 
     if (chambreDisponible != null) {
 
-        // Vérifier si la réservation a déjà une chambre attribuée
+        /* Vérifier si la réservation a déjà une chambre attribuée
         if (chambreDisponible.getReservations() != null) {
             response.put("message", "La réservation a déjà une chambre attribuée.");
             return response;
-        }
+        }*/
 
         // Générer le numéro de réservation
-        String numReservation = genererNumeroReservation(reservation);
+        String numReservation = genererNumeroReservation(reservation,chambreDisponible);
         System.out.println("numReservation    : " + numReservation);
         reservation.setNumReservation(numReservation);
 
@@ -138,22 +175,35 @@ public class ReservationService implements ReservationServiceImpl {
         // Enregistrer les modifications
         chambreRepository.save(chambreDisponible);
         reservationRepository.save(reservation);
-        response.put("message", "Réservation validée avec succès.");
 
+        response.put("message", "Réservation validée avec succès.");
+        response.put("chambre", reservation.getNumReservation());
+        response.put("estValide", reservation.getEstValide());
     } else {
-        response.put("message", "La réservation ne peut pas être ajoutée. Aucune chambre disponible.");
+        response.put("message", "Aucune chambre disponible.");
     }
 
     return response;
 }
 
-    private String genererNumeroReservation(Reservation reservation) {
-        Chambre chambre =  chambreRepository.findChambreDisponible(reservation.getTypeChambre());
+    private String genererNumeroReservation(Reservation reservation, Chambre chambre) {
+    //    Chambre chambre =  chambreRepository.findChambreDisponible(reservation.getTypeChambre());
+
+        System.out.println("nomFoyer ************"+chambre.getBloc().getFoyers().getNomFoyer());
+        String nomFoyer=chambre.getBloc().getFoyers().getNomFoyer();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
         String anneeUniversitaire = sdf.format(new Date());
 
-        return chambre.getNumeroChambre() + "-" + chambre.getBloc().getNomBloc() + "-" + anneeUniversitaire;
+        return chambre.getNumeroChambre() + "-" + chambre.getBloc().getNomBloc()+"-"+nomFoyer+ "-" + anneeUniversitaire;
     }
 
+
+    @Override
+    public Optional<Reservation> getByIdReservation(Integer idReservation) {
+        if (reservationRepository.existsById(idReservation)) {
+               return  reservationRepository.findById(idReservation);
+        }
+        return null;
+    }
 
 }

@@ -3,12 +3,11 @@ package tn.esprit.spring.Controller;
 import tn.esprit.spring.Service.ReservationServiceImpl;
 import tn.esprit.spring.entity.Reservation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/reservation")
@@ -28,22 +27,14 @@ public class ReservationController {
     Reservation updateReservation(@RequestBody Reservation reservation) {
         return reservationService.updateReservation(reservation);
     }
-    /*@PutMapping("/estValide/{id}")
-    void estValide(@PathVariable String id) {
-        reservationService.estValide(id);
-    }*/
-
     /************** Valider une reservation ou refuser *************/
 
     @PutMapping("/estValide/{id}")
-    public ResponseEntity<Map<String, Object>> estValide(@PathVariable Integer id) {
+    public Map<String, Object> estValide(@PathVariable Integer id) {
         Map<String, Object> response = reservationService.estValide(id);
 
-        if ("Succès".equals(response.get("status"))) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
+            return response;
+
     }
 
     @PutMapping("/nonValide/{id}")
@@ -55,7 +46,14 @@ public class ReservationController {
     List<Reservation> getAllReservations() {
         return reservationService.getAllReservations();
     }
-
+    @GetMapping("/getMesReservations/{cinEtudiant}")
+    Map<String, Object>getMesReservations(@PathVariable Long cinEtudiant) {
+        return reservationService.getMesReservations(cinEtudiant);
+    }
+    @GetMapping("/getByIdReservation/{idReservation}")
+    Optional<Reservation> getByIdReservation(@PathVariable Integer idReservation) {
+        return reservationService.getByIdReservation(idReservation);
+    }
     @DeleteMapping("/deleteReservation/{id}")
     void deleteReservation(@PathVariable Integer id) {
         reservationService.deleteReservation(id);

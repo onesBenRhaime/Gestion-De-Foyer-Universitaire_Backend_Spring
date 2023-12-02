@@ -18,6 +18,19 @@ public interface ChambreRepository extends JpaRepository<Chambre, Long> {
           )
     Chambre findAvailableChambreByType(@Param("typeChambre") TypeC typeChambre);
 /***************/
-@Query("SELECT c FROM Chambre c WHERE c.TypeChambre = :type AND c.capaciteChambre > 0 ORDER BY c.idChambre ASC LIMIT 1")
-Chambre findChambreDisponible(@Param("type") TypeC type);
+/*@Query("SELECT c FROM Chambre c WHERE c.TypeChambre = :type AND c.capaciteChambre > 0 ORDER BY c.idChambre ASC LIMIT 1")
+Chambre findChambreDisponible(@Param("type") TypeC type);*/
+
+@Query("SELECT c FROM Chambre c " +
+        "JOIN c.bloc b " +
+        "JOIN b.foyers f " +
+        "JOIN f.universite u " +
+        "WHERE c.TypeChambre= :type " +
+        "AND c.capaciteChambre > 0 " +
+        "AND u.idUniversite = :idUniversite " +
+        "ORDER BY c.idChambre ASC")
+Chambre findChambreDisponible(@Param("type") TypeC type, @Param("idUniversite") Long idUniversite);
+
+
+
 }
